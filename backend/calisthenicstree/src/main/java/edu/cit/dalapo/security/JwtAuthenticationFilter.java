@@ -26,18 +26,22 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
-            throws ServletException, IOException {
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         
         final String authHeader = request.getHeader("Authorization");
+        final String jwt;
+        final String userEmail;
         
+        // 1. Safety check for public endpoints
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        final String jwt = authHeader.substring(7);
-        final String userEmail = jwtService.extractUsername(jwt);
+        // 2. THE FIX: Extract the token (skip the "Bearer " prefix which is 7 characters)
+        jwt = authHeader.substring(7);
+        // 3. THE FIX: Extract the email using your JwtService
+        userEmail = jwtService.extractUsername(jwt);
 
         if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             

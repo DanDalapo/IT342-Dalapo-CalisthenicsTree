@@ -22,18 +22,20 @@ public class AuthService {
     }
 
     public AuthResponse register(RegisterRequest request) {
+        
+        // 1. Database validation: Check if email already exists
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new RuntimeException("Email already in use.");
         }
-        if (!request.getPassword().equals(request.getConfirmPassword())) {
-            throw new RuntimeException("Passwords do not match.");
-        }
 
+        // 2. Security: Hash the password
         String hashedPassword = passwordEncoder.encode(request.getPassword()); 
 
+        // 3. Database: Save the new user
         UserEntity newUser = new UserEntity(request.getEmail(), hashedPassword, request.getFitnessLevel());
         UserEntity savedUser = userRepository.save(newUser);
 
+        // 4. Auth: Generate a JWT token for auto-login
         String token = jwtService.generateToken(savedUser.getEmail());
 
         return new AuthResponse(savedUser.getId(), savedUser.getEmail(), token);

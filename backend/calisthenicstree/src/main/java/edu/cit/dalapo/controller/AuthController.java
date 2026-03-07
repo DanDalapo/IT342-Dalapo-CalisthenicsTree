@@ -5,7 +5,10 @@ import edu.cit.dalapo.dto.RegisterRequest;
 import edu.cit.dalapo.dto.LoginRequest;
 import edu.cit.dalapo.service.AuthService;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestMapping;
 
 @RestController
 @RequestMapping("/api/v1/auth")
@@ -19,9 +22,9 @@ public class AuthController {
 
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@RequestBody RegisterRequest request) {
+        System.out.println("🚨 REGISTER ENDPOINT WAS HIT! 🚨");
         try {
             AuthResponse responseData = authService.register(request);
-            // In a full implementation, you'd wrap this in your API Standard JSON format
             return ResponseEntity.status(201).body(responseData);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
