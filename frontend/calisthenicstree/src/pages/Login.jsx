@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { useNavigate, Link } from 'react-router-dom';
 import './css/Login.css';
+import { GoogleLogin } from '@react-oauth/google';
 
 // import mailIcon from '../assets/icons/mail.svg';
 // import lockIcon from '../assets/icons/lock.svg';
@@ -120,6 +121,37 @@ const Login = () => {
                     >
                         LOGIN
                     </button>
+
+                    <div className="mt-6 flex flex-col items-center">
+                        <p className="text-gray-400 text-sm mb-4">Or continue with</p>
+                        
+                        <GoogleLogin
+                            onSuccess={async (credentialResponse) => {
+                                try {
+                                    const response = await axios.post('http://localhost:8080/api/v1/auth/google/login', {
+                                        token: credentialResponse.credential
+                                    });
+                                    
+                                    // If successful, handle it just like a normal manual login!
+                                    setSuccessMessage('Google Login successful! Redirecting...');
+                                    
+                                    // TODO: Save response.data.token to localStorage here if you need to!
+
+                                    setTimeout(() => {
+                                        navigate('/dashboard'); // Or wherever your app goes after login
+                                    }, 2000);
+                                    
+                                } catch (error) {
+                                    setMessage("Google authentication failed on our server.");
+                                }
+                            }}
+                            onError={() => {
+                                console.log('Google Login Failed');
+                            }}
+                            theme="filled_black"
+                            shape="pill"
+                        />
+                    </div>
                 </form>
 
                 <div className="mt-12 text-center max-w-md border-t border-gray-800 pt-8">
