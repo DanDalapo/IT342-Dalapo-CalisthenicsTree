@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { useNavigate, Link } from 'react-router-dom';
+import { GoogleLogin } from '@react-oauth/google';
 
 const Registration = () => {
   const navigate = useNavigate();
@@ -172,6 +173,43 @@ const Registration = () => {
           >
             SIGN UP
           </button>
+
+          <div className="mt-6 flex flex-col items-center">
+            <p className="text-gray-400 text-sm mb-4">Or continue with</p>
+                        
+              <GoogleLogin
+                onSuccess={async (credentialResponse) => {
+                  try {
+                    const response = await axios.post('http://localhost:8080/api/v1/auth/google/register', {
+                      token: credentialResponse.credential
+                    });
+                                    
+                    // If successful, handle it just like a normal manual login!
+                    setMessage(''); // Clear any old errors
+                    setSuccessMessage('Google Signup successful! Redirecting...');
+                                    
+                    // TODO: Save response.data.token to localStorage here if you need to!
+
+                    setTimeout(() => {
+                      navigate('/dashboard'); // Or wherever your app goes after login
+                    }, 2000);
+                                    
+                  } catch (error) {
+                    // THE FIX: Unmask the true Spring Boot error message!
+                    if (error.response && error.response.data) {
+                        setMessage(error.response.data); // This will show "Account already exists."
+                    } else {
+                        setMessage("Cannot connect to the backend server.");
+                    }
+                  }
+                }}
+                onError={() => {
+                  console.log('Google Login Failed');
+                }}
+                theme="filled_black"
+                shape="pill"
+              />
+          </div>
         </form>
 
         <div className="mt-8 text-center max-w-lg border-t border-gray-800 pt-6">
