@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">Calisthics Tree</string>
+
+    <string-array name="fitness_levels">
+        <item>Beginner</item>
+        <item>Intermediate</item>
+        <item>Advanced</item>
+    </string-array>
+</resources>
