@@ -12,7 +12,8 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import edu.cit.dalapo.service.JwtService;
 import edu.cit.dalapo.repository.UserRepository;
 import java.io.IOException;
-import java.util.ArrayList;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import java.util.Collections;
 
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
@@ -32,24 +33,26 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         final String jwt;
         final String userEmail;
         
-        // 1. Safety check for public endpoints
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        // 2. THE FIX: Extract the token (skip the "Bearer " prefix which is 7 characters)
         jwt = authHeader.substring(7);
-        // 3. THE FIX: Extract the email using your JwtService
         userEmail = jwtService.extractUsername(jwt);
 
         if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             
             if (userRepository.existsByEmail(userEmail) && jwtService.isTokenValid(jwt, userEmail)) {
                 
+                String role = jwtService.extractRole(jwt);
+                
+                SimpleGrantedAuthority authority = new SimpleGrantedAuthority(role);
+                
                 UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                        userEmail, null, new ArrayList<>()
+                        userEmail, null, Collections.singletonList(authority)
                 );
+                
                 authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 
                 SecurityContextHolder.getContext().setAuthentication(authToken);

@@ -9,7 +9,6 @@ import jakarta.persistence.Table;
 import jakarta.persistence.Column;
 import jakarta.persistence.PrePersist;
 
-
 @Entity
 @Table(name = "users")
 public class UserEntity {
@@ -29,6 +28,9 @@ public class UserEntity {
 
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
+
+    @Column(nullable = false)
+    private String role = "USER";
 
     @PrePersist
     protected void onCreate() {
@@ -83,5 +85,13 @@ public class UserEntity {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public String getRole() { 
+        return role;
+    }
+
+    public void setRole(String role) { 
+        this.role = role;
     }
 }
