@@ -4,9 +4,6 @@ import { useNavigate, Link } from 'react-router-dom';
 import './css/Login.css';
 import { GoogleLogin } from '@react-oauth/google';
 
-// import mailIcon from '../assets/icons/mail.svg';
-// import lockIcon from '../assets/icons/lock.svg';
-
 const Login = () => {
     const navigate = useNavigate();
 
@@ -33,7 +30,8 @@ const Login = () => {
                 password: formData.password
             });
             
-            localStorage.setItem('user', JSON.stringify(response.data));
+            localStorage.setItem('token', response.data.token);
+            localStorage.setItem('role', response.data.role);
 
             setMessage('');
             setSuccessMessage('Login successful! Redirecting...');
@@ -135,10 +133,11 @@ const Login = () => {
                                     // If successful, handle it just like a normal manual login!
                                     setSuccessMessage('Google Login successful! Redirecting...');
                                     
-                                    // TODO: Save response.data.token to localStorage here if you need to!
+                                    localStorage.setItem('token', response.data.token);
+                                    localStorage.setItem('role', response.data.role);
 
                                     setTimeout(() => {
-                                        navigate('/dashboard'); // Or wherever your app goes after login
+                                        navigate('/dashboard'); 
                                     }, 2000);
                                     
                                 } catch (error) {

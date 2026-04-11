@@ -7,6 +7,8 @@ import io.jsonwebtoken.security.Keys;
 import org.springframework.stereotype.Service;
 import java.security.Key;
 import java.util.Date;
+import java.util.HashMap;
+
 import io.jsonwebtoken.Claims;
 import java.util.function.Function;
 
@@ -16,8 +18,14 @@ public class JwtService {
     // This is a 256-bit hex string used to digitally sign your tokens (temporary).
     private static final String SECRET_KEY = "404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970";
 
-    public String generateToken(String email) {
+    public String generateToken(String email, String role) {
+
+        HashMap<String, Object> claims = new HashMap<>();
+        
+        claims.put("role", role);
+
         return Jwts.builder()
+                .setClaims(claims)
                 .setSubject(email)
                 .setIssuedAt(new Date(System.currentTimeMillis()))
                 .setExpiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 24))
@@ -58,5 +66,9 @@ public class JwtService {
                 .build()
                 .parseClaimsJws(token)
                 .getBody();
+    }
+
+    public String extractRole(String token) {
+        return extractAllClaims(token).get("role", String.class);
     }
 }

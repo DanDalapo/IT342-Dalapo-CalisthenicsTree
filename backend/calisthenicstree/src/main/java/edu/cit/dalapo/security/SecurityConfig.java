@@ -14,7 +14,6 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import org.springframework.http.HttpMethod;
 import java.util.Arrays;
 import java.util.List;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
@@ -44,22 +43,22 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-            .cors(cors -> cors.disable()) // Your custom Bean handles this now
-            .csrf(csrf -> csrf.disable())
-            
-            // 1. ADD THESE TWO LINES: Turn off HTML web pages!
-            .formLogin(form -> form.disable()) 
-            .httpBasic(basic -> basic.disable())
-            
-            // 2. Your rules
+            .csrf(csrf -> csrf.disable()) // Keep disabled for JWT APIs
+            .cors(cors -> cors.configure(http)) // Ensure CORS is still enabled!
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                .requestMatchers("/api/v1/auth/**").permitAll()
-                .requestMatchers("/error").permitAll()
-                .anyRequest().authenticated()
+                // 1. PUBLIC ROUTES (Anyone can access)
+                .requestMatchers("/api/v1/auth/**").permitAll() 
+                
+                // 2. 🚨 ADMIN ROUTES (Strictly locked down) 🚨
+                .requestMatchers("/api/v1/admin/**").hasAuthority("ADMIN") 
+                
+                // 3. USER ROUTES (Requires standard login)
+                .requestMatchers("/api/v1/user/**").authenticated() 
+                
+                // Catch-all for anything else
+                .anyRequest().authenticated() 
             )
             
-            // 3. Your stateless JWT setup
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
             
