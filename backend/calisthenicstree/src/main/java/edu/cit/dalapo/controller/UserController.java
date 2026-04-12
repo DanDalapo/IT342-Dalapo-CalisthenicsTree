@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.transaction.annotation.Transactional;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,12 +33,14 @@ public class UserController {
 
     // (Your existing endpoint for the map)
     @GetMapping("/exercises")
+    @Transactional(readOnly = true)
     public ResponseEntity<?> getAllExercises() {
         return ResponseEntity.ok(exerciseRepository.findAll());
     }
 
     // THE NEW ENDPOINT: Fetch the logged-in user's exact progress levels
     @GetMapping("/progress")
+    @Transactional(readOnly = true)
     public ResponseEntity<?> getUserProgress() {
         
         // 1. SECURITY: Find out exactly who is making this request by reading their JWT Token
@@ -68,6 +71,7 @@ public class UserController {
     }
 
     @PostMapping("/progress/complete/{exerciseId}")
+    @Transactional
     public ResponseEntity<?> completeExercise(@PathVariable Long exerciseId) {
         
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -109,6 +113,7 @@ public class UserController {
 
     // THE NEW RPG REVERT/UNDO ENDPOINT
     @PostMapping("/progress/revert/{exerciseId}")
+    @Transactional
     public ResponseEntity<?> revertExercise(@PathVariable Long exerciseId) {
         
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();

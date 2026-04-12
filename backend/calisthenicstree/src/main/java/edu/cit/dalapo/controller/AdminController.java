@@ -4,6 +4,7 @@ import edu.cit.dalapo.entity.ExerciseEntity;
 import edu.cit.dalapo.repository.ExerciseRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 @CrossOrigin(origins = "*")
@@ -25,6 +26,7 @@ public class AdminController {
     }
 
     @PutMapping("/exercises/{id}")
+    @Transactional
     public ResponseEntity<?> updateExercise(@PathVariable Long id, @RequestBody ExerciseEntity updatedData) {
         
         return exerciseRepository.findById(id).map(existingExercise -> {
