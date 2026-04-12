@@ -1,56 +1,169 @@
 import React, { useMemo } from 'react';
-import ReactFlow, { Background, Controls } from 'reactflow';
+import ReactFlow, { Background, Handle, Position } from 'reactflow';
 import 'reactflow/dist/style.css';
+import { ReactComponent as DumbbellIcon } from '../pages/assets/dumbbell_icon.svg';
+import { ReactComponent as LockIcon } from '../pages/assets/lock_icon.svg';
 
-const SkillTree = ({ exercises }) => {
+const CustomExerciseNode = ({ data }) => {
+    const { id, label, category, exerciseLevel, userLevel, onComplete, onRevert } = data;
+    
+    const isLocked = exerciseLevel > userLevel;
+    const isCurrent = exerciseLevel === userLevel;
+    const isMastered = exerciseLevel < userLevel;
 
-    // 1. Convert your Database Exercises into React Flow "Nodes"
+    let borderColor = '#333';
+    let boxShadow = 'none';
+    let bgColor = '#111';
+    let textColor = 'white';
+    let cursorStyle = (isCurrent || isMastered) ? 'pointer' : 'default';
+
+    if (isMastered) {
+        borderColor = '#22c55e';
+        boxShadow = '0 0 10px #22c55e33';
+    } else if (isCurrent) {
+        borderColor = '#eab308';
+        boxShadow = '0 0 15px #eab30880';
+    } else if (isLocked) {
+        borderColor = '#222';
+        bgColor = '#0a0a0a';
+        textColor = '#555555';
+    }
+
+    return (
+        <div 
+            onClick={() => {
+                if (isCurrent && onComplete) {
+                    onComplete(id, label, category, exerciseLevel); 
+                } else if (isMastered && onRevert) {
+                    onRevert(id, label, category, exerciseLevel);
+                }
+            }}
+            style={{
+                background: bgColor, border: `2px solid ${borderColor}`, borderRadius: '12px',
+                padding: '15px', width: 160, display: 'flex', flexDirection: 'column',
+                alignItems: 'center', justifyContent: 'center', color: textColor, cursor: cursorStyle,
+                boxShadow: boxShadow, transition: 'all 0.3s ease'
+            }}
+        >
+            <Handle type="target" position={Position.Top} style={{ background: '#555', border: 'none' }} />
+
+            {isLocked ? (
+                <LockIcon style={{ width: '30px', height: '30px', marginBottom: '8px', color: '#555555' }} />
+            ) : (
+                <DumbbellIcon style={{ width: '35px', height: '35px', marginBottom: '8px', color: isMastered ? '#22c55e' : '#ffffff' }} />
+            )}
+
+            <div style={{ fontSize: '12px', textAlign: 'center', fontWeight: 'bold' }}>
+                {label}
+            </div>
+
+            <div style={{ fontSize: '10px', marginTop: '4px', color: isLocked ? '#444' : '#888' }}>
+                Level {exerciseLevel}
+            </div>
+
+            <Handle type="source" position={Position.Bottom} style={{ background: '#555', border: 'none' }} />
+        </div>
+    );
+};
+
+const nodeTypes = { customExercise: CustomExerciseNode };
+
+const SkillTree = ({ exercises, userProgress, onComplete, onRevert }) => {
+
     const nodes = useMemo(() => {
-        return exercises.map((ex) => {
-            // Auto-calculate X position based on Category (Columns)
-            let xPos = 0;
-            if (ex.category === 'Push-ups') xPos = 100;
-            if (ex.category === 'Squats') xPos = 400;
-            if (ex.category === 'Pull-ups') xPos = 700;
+        // 1. Group exercises by category and level first
+        const groupedByLevel = {};
+        exercises.forEach(ex => {
+            const key = `${ex.category}-${ex.progressionLevel}`;
+            if (!groupedByLevel[key]) groupedByLevel[key] = [];
+            groupedByLevel[key].push(ex);
+        });
 
-            // Auto-calculate Y position based on Level (Rows)
-            let yPos = (ex.progressionLevel * 150) + 100;
+        return exercises.map((ex) => {
+            const key = `${ex.category}-${ex.progressionLevel}`;
+            const siblings = groupedByLevel[key];
+            const indexInGroup = siblings.findIndex(s => s.id === ex.id);
+
+            // 2. Column Centers
+            let centerX = 0;
+            if (ex.category === 'Push') centerX = 150;
+            if (ex.category === 'Legs') centerX = 550;
+            if (ex.category === 'Pull') centerX = 950;
+
+            // 3. Smart Centering Math
+            // If 1 item: offset is 0
+            // If 2 items: offsets are -60 and +60
+            // If 3 items: offsets are -120, 0, +120
+            const nodeWidth = 160;
+            const spacing = 80; // Gap between nodes
+            const totalWidth = (siblings.length * nodeWidth) + ((siblings.length - 1) * spacing);
+            const startX = centerX - (totalWidth / 2) + (nodeWidth / 2);
+            
+            const finalX = startX + (indexInGroup * (nodeWidth + spacing));
+            const yPos = (ex.progressionLevel * 200) + 50;
+
+            const currentUserLevel = userProgress[ex.category] !== undefined ? userProgress[ex.category] : 0;
 
             return {
                 id: ex.id.toString(),
-                position: { x: xPos, y: yPos },
-                data: { label: `${ex.name} (Lvl ${ex.progressionLevel})` },
-                style: {
-                    background: '#111',
-                    color: 'white',
-                    border: '2px solid #333',
-                    borderRadius: '8px',
-                    padding: '10px',
-                    width: 150,
-                    textAlign: 'center'
-                }
+                type: 'customExercise',
+                position: { x: finalX, y: yPos },
+                data: { 
+                    id: ex.id,
+                    label: ex.name,
+                    category: ex.category,
+                    exerciseLevel: ex.progressionLevel,
+                    userLevel: currentUserLevel,
+                    onComplete: onComplete,
+                    onRevert: onRevert
+                },
             };
         });
-    }, [exercises]);
+    }, [exercises, userProgress, onComplete, onRevert]);
 
-    // 2. Convert your Database Prerequisites into React Flow "Edges" (Connecting Lines)
     const edges = useMemo(() => {
         return exercises
-            .filter(ex => ex.prerequisiteId !== null) // Only grab exercises that have a parent
-            .map(ex => ({
-                id: `e${ex.prerequisiteId}-${ex.id}`,
-                source: ex.prerequisiteId.toString(), // The line starts at the prerequisite...
-                target: ex.id.toString(),             // ...and ends at the current exercise
-                animated: true, // This makes the line move like a video game!
-                style: { stroke: '#ef4444', strokeWidth: 2 } // Red connecting lines
-            }));
-    }, [exercises]);
+            .filter(ex => ex.prerequisiteId !== null)
+            .map(ex => {
+                const currentUserLevel = userProgress[ex.category] !== undefined ? userProgress[ex.category] : 0;
+                const isMastered = currentUserLevel > ex.progressionLevel;
+                const isCurrent = currentUserLevel === ex.progressionLevel;
+
+                let edgeColor = '#333333'; 
+                let dropShadow = 'none';
+                let strokeThickness = 2;
+                let animateLine = false;
+
+                if (isMastered) {
+                    edgeColor = '#22c55e'; 
+                    dropShadow = 'drop-shadow(0px 0px 5px rgba(34,197,94,0.6))'; 
+                    strokeThickness = 3; 
+                } else if (isCurrent) {
+                    edgeColor = '#eab308'; 
+                    dropShadow = 'drop-shadow(0px 0px 8px rgba(234,179,8,0.8))'; 
+                    strokeThickness = 3;
+                    animateLine = true; 
+                }
+
+                return {
+                    id: `e${ex.prerequisiteId}-${ex.id}`,
+                    source: ex.prerequisiteId.toString(),
+                    target: ex.id.toString(),
+                    animated: animateLine, 
+                    style: { 
+                        stroke: edgeColor, 
+                        strokeWidth: strokeThickness,
+                        filter: dropShadow, 
+                        transition: 'all 0.4s ease' 
+                    } 
+                };
+            });
+    }, [exercises, userProgress]); 
 
     return (
-        <div style={{ width: '100%', height: '600px', background: '#000', borderRadius: '12px', border: '1px solid #333' }}>
-            <ReactFlow nodes={nodes} edges={edges} fitView>
+        <div style={{ width: '100%', height: '700px', background: '#000', borderRadius: '12px', border: '1px solid #333' }}>
+            <ReactFlow nodes={nodes} edges={edges} nodeTypes={nodeTypes} fitView proOptions={{ hideAttribution: true }}>
                 <Background color="#333" gap={16} />
-                <Controls style={{ fill: 'white' }} />
             </ReactFlow>
         </div>
     );
