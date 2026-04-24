@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 const AdminDashboard = () => {
     const navigate = useNavigate();
     
-    const [exercise, setExercise] = useState({ name: '', category: '', progressionLevel: 0, prerequisiteId: '' });
+    const [exercise, setExercise] = useState({ name: '', category: '', progressionLevel: 0, prerequisiteIds: '' });
     const [message, setMessage] = useState('');
     const [exercisesList, setExercisesList] = useState([]);
     const [editingId, setEditingId] = useState(null);
@@ -40,11 +40,20 @@ const AdminDashboard = () => {
         setMessage('');
 
         const token = localStorage.getItem('token');
+
+        let parsedPrerequisites = [];
+        if (exercise.prerequisiteIds) {
+            parsedPrerequisites = String(exercise.prerequisiteIds)
+                .split(',')
+                .map(id => parseInt(id.trim()))
+                .filter(id => !isNaN(id));
+        }
+
         const payload = {
             name: exercise.name,
             category: exercise.category,
             progressionLevel: exercise.progressionLevel,
-            prerequisiteId: exercise.prerequisiteId ? parseInt(exercise.prerequisiteId) : null
+            prerequisiteIds: parsedPrerequisites
         };
 
         const previousExercisesList = [...exercisesList];
@@ -57,7 +66,7 @@ const AdminDashboard = () => {
             setExercisesList(prev => [...prev, { ...payload, id: tempId }]);
         }
 
-        setExercise({ name: '', category: '', progressionLevel: 0, prerequisiteId: '' });
+        setExercise({ name: '', category: '', progressionLevel: 0, prerequisiteIds: '' });
         setEditingId(null);
         setShowNewCategoryInput(false);
 
@@ -92,14 +101,15 @@ const AdminDashboard = () => {
             name: ex.name,
             category: ex.category,
             progressionLevel: ex.progressionLevel,
-            prerequisiteId: ex.prerequisiteId || ''
+            // Convert the array [1, 2] back to a string "1, 2" for the input box
+            prerequisiteIds: ex.prerequisiteIds && ex.prerequisiteIds.length > 0 ? ex.prerequisiteIds.join(', ') : ''
         });
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
     const handleCancelEdit = () => {
         setEditingId(null);
-        setExercise({ name: '', category: '', progressionLevel: 0, prerequisiteId: '' });
+        setExercise({ name: '', category: '', progressionLevel: 0, prerequisiteIds: '' });
         setShowNewCategoryInput(false);
         setMessage('');
     };
@@ -186,8 +196,14 @@ const AdminDashboard = () => {
                                 <input type="number" value={exercise.progressionLevel} onChange={(e) => setExercise({...exercise, progressionLevel: parseInt(e.target.value)})} className="w-full p-3 bg-black rounded-lg border border-gray-700 focus:border-red-500 outline-none" min="0" required />
                             </div>
                             <div>
-                                <label className="block text-sm text-gray-400 mb-2 uppercase tracking-widest">Prerequisite ID</label>
-                                <input type="number" value={exercise.prerequisiteId} onChange={(e) => setExercise({...exercise, prerequisiteId: e.target.value})} className="w-full p-3 bg-black rounded-lg border border-gray-700 focus:border-red-500 outline-none" />
+                                <label className="block text-sm text-gray-400 mb-2 uppercase tracking-widest">Prerequisite IDs (Comma separated)</label>
+                                <input 
+                                    type="text" 
+                                    value={exercise.prerequisiteIds} 
+                                    onChange={(e) => setExercise({...exercise, prerequisiteIds: e.target.value})} 
+                                    placeholder="e.g. 1, 2"
+                                    className="w-full p-3 bg-black rounded-lg border border-gray-700 focus:border-red-500 outline-none" 
+                                />
                             </div>
                         </div>
 
@@ -243,7 +259,11 @@ const AdminDashboard = () => {
                                         <td className="p-4 font-bold">{ex.name}</td>
                                         <td className="p-4 text-gray-400">{ex.category}</td>
                                         <td className="p-4 text-gray-400">{ex.progressionLevel}</td>
-                                        <td className="p-4 text-gray-500 font-mono">{ex.prerequisiteId || 'None'}</td>
+                                        <td className="p-4 text-gray-500 font-mono">
+                                            {ex.prerequisiteIds && ex.prerequisiteIds.length > 0 
+                                                ? ex.prerequisiteIds.join(', ') 
+                                                : 'None'}
+                                        </td>
                                         <td className="p-4">
                                             <button 
                                                 onClick={() => handleEditClick(ex)}
