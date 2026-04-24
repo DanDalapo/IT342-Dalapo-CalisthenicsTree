@@ -122,42 +122,33 @@ const SkillTree = ({ exercises, userProgress, onComplete, onRevert }) => {
     }, [exercises, userProgress, onComplete, onRevert]);
 
     const edges = useMemo(() => {
-        return exercises
-            .filter(ex => ex.prerequisiteId !== null)
-            .map(ex => {
-                const currentUserLevel = userProgress[ex.category] !== undefined ? userProgress[ex.category] : 0;
-                const isMastered = currentUserLevel > ex.progressionLevel;
-                const isCurrent = currentUserLevel === ex.progressionLevel;
+        const generatedEdges = [];
+        
+        exercises.forEach((ex) => {
+            if (ex.prerequisiteIds && ex.prerequisiteIds.length > 0) {
+                
+                ex.prerequisiteIds.forEach((preId) => {
+                    const sourceEx = exercises.find(e => e.id === preId);
+                    if (!sourceEx) return;
 
-                let edgeColor = '#333333'; 
-                let dropShadow = 'none';
-                let strokeThickness = 2;
-                let animateLine = false;
+                    const isMastered = userProgress[sourceEx.category] > sourceEx.progressionLevel;
+                    const isActive = userProgress[sourceEx.category] === sourceEx.progressionLevel;
 
-                if (isMastered) {
-                    edgeColor = '#22c55e'; 
-                    dropShadow = 'drop-shadow(0px 0px 5px rgba(34,197,94,0.6))'; 
-                    strokeThickness = 3; 
-                } else if (isCurrent) {
-                    edgeColor = '#eab308'; 
-                    dropShadow = 'drop-shadow(0px 0px 8px rgba(234,179,8,0.8))'; 
-                    strokeThickness = 3;
-                    animateLine = true; 
-                }
-
-                return {
-                    id: `e${ex.prerequisiteId}-${ex.id}`,
-                    source: ex.prerequisiteId.toString(),
-                    target: ex.id.toString(),
-                    animated: animateLine, 
-                    style: { 
-                        stroke: edgeColor, 
-                        strokeWidth: strokeThickness,
-                        filter: dropShadow, 
-                        transition: 'all 0.4s ease' 
-                    } 
-                };
-            });
+                    generatedEdges.push({
+                        id: `e${preId}-${ex.id}`,
+                        source: preId.toString(),
+                        target: ex.id.toString(),
+                        animated: isActive,
+                        style: { 
+                            stroke: isMastered ? '#4ade80' : isActive ? '#fbbf24' : '#374151',
+                            strokeWidth: 2 
+                        },
+                    });
+                });
+            }
+        });
+        
+        return generatedEdges;
     }, [exercises, userProgress]); 
 
     return (

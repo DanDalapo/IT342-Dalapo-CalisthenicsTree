@@ -34,7 +34,7 @@ public class AdminController {
             existingExercise.setName(updatedData.getName());
             existingExercise.setCategory(updatedData.getCategory());
             existingExercise.setProgressionLevel(updatedData.getProgressionLevel());
-            existingExercise.setPrerequisiteId(updatedData.getPrerequisiteId());
+            existingExercise.setPrerequisiteIds(updatedData.getPrerequisiteIds());
             
             return ResponseEntity.ok(exerciseRepository.save(existingExercise));
         }).orElse(ResponseEntity.notFound().build());

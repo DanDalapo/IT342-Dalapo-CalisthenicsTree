@@ -1,6 +1,12 @@
 package edu.cit.dalapo.entity;
 
+import jakarta.persistence.ElementCollection;
+import jakarta.persistence.CollectionTable;
+import jakarta.persistence.Column;
+import jakarta.persistence.JoinColumn;
 import jakarta.persistence.*;
+import java.util.List;
+import java.util.ArrayList;
 
 @Entity
 @Table(name = "exercises")
@@ -10,8 +16,10 @@ public class ExerciseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "prerequisite_id", nullable = true)
-    private Long prerequisiteId;
+    @ElementCollection
+    @CollectionTable(name = "exercise_prerequisites", joinColumns = @JoinColumn(name = "exercise_id"))
+    @Column(name = "prerequisite_id")
+    private List<Long> prerequisiteIds = new ArrayList<>();
 
     private String name;
     private String category;
@@ -51,12 +59,12 @@ public class ExerciseEntity {
         this.progressionLevel = progressionLevel;
     }
 
-    public Long getPrerequisiteId() {
-        return prerequisiteId;
+    public List<Long> getPrerequisiteIds() {
+        return prerequisiteIds;
     }
-    
-    public void setPrerequisiteId(Long prerequisiteId) {
-        this.prerequisiteId = prerequisiteId;
+
+    public void setPrerequisiteIds(List<Long> prerequisiteIds) {
+        this.prerequisiteIds = prerequisiteIds;
     }
 
 }
