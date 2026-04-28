@@ -5,11 +5,11 @@ import { ReactComponent as DumbbellIcon } from '../pages/assets/dumbbell_icon.sv
 import { ReactComponent as LockIcon } from '../pages/assets/lock_icon.svg';
 
 const CustomExerciseNode = ({ data }) => {
-    const { id, label, category, exerciseLevel, userLevel, onComplete, onRevert } = data;
-    
+    const { id, label, category, exerciseLevel, userLevel, completedExercises, onComplete, onRevert } = data;    
+    const isMastered = completedExercises.includes(id);
     const isLocked = exerciseLevel > userLevel;
-    const isCurrent = exerciseLevel === userLevel;
-    const isMastered = exerciseLevel < userLevel;
+    const isCurrent = exerciseLevel <= userLevel && !isMastered;
+    const isBypassed = exerciseLevel < userLevel && !isMastered;
 
     let borderColor = '#333';
     let boxShadow = 'none';
@@ -68,7 +68,7 @@ const CustomExerciseNode = ({ data }) => {
 
 const nodeTypes = { customExercise: CustomExerciseNode };
 
-const SkillTree = ({ exercises, userProgress, onComplete, onRevert }) => {
+const SkillTree = ({ exercises, userProgress, completedExercises, onComplete, onRevert }) => {
 
     const nodes = useMemo(() => {
         // 1. Group exercises by category and level first
@@ -86,9 +86,11 @@ const SkillTree = ({ exercises, userProgress, onComplete, onRevert }) => {
 
             // 2. Column Centers
             let centerX = 0;
-            if (ex.category === 'Push') centerX = 150;
-            if (ex.category === 'Legs') centerX = 550;
-            if (ex.category === 'Pull') centerX = 950;
+            if (ex.category === 'Push') centerX = 200;
+            if (ex.category === 'Legs') centerX = 700;
+            if (ex.category === 'Pull') centerX = 1200;
+            if (ex.category === 'Core') centerX = 1700;
+            if (ex.category === 'Arms') centerX = 2200;
 
             // 3. Smart Centering Math
             // If 1 item: offset is 0
@@ -98,7 +100,6 @@ const SkillTree = ({ exercises, userProgress, onComplete, onRevert }) => {
             const spacing = 80; // Gap between nodes
             const totalWidth = (siblings.length * nodeWidth) + ((siblings.length - 1) * spacing);
             const startX = centerX - (totalWidth / 2) + (nodeWidth / 2);
-            
             const finalX = startX + (indexInGroup * (nodeWidth + spacing));
             const yPos = (ex.progressionLevel * 200) + 50;
 
@@ -114,12 +115,13 @@ const SkillTree = ({ exercises, userProgress, onComplete, onRevert }) => {
                     category: ex.category,
                     exerciseLevel: ex.progressionLevel,
                     userLevel: currentUserLevel,
+                    completedExercises: completedExercises,
                     onComplete: onComplete,
                     onRevert: onRevert
                 },
             };
         });
-    }, [exercises, userProgress, onComplete, onRevert]);
+    }, [exercises, userProgress, completedExercises]);
 
     const edges = useMemo(() => {
         const generatedEdges = [];
@@ -131,16 +133,17 @@ const SkillTree = ({ exercises, userProgress, onComplete, onRevert }) => {
                     const sourceEx = exercises.find(e => e.id === preId);
                     if (!sourceEx) return;
 
-                    const isMastered = userProgress[sourceEx.category] > sourceEx.progressionLevel;
-                    const isActive = userProgress[sourceEx.category] === sourceEx.progressionLevel;
+                    const isSourceMastered = completedExercises.includes(sourceEx.id);
+                    
+                    const isSourceCurrent = sourceEx.progressionLevel <= userProgress[sourceEx.category] && !isSourceMastered;
 
                     generatedEdges.push({
                         id: `e${preId}-${ex.id}`,
                         source: preId.toString(),
                         target: ex.id.toString(),
-                        animated: isActive,
+                        animated: isSourceCurrent,
                         style: { 
-                            stroke: isMastered ? '#4ade80' : isActive ? '#fbbf24' : '#374151',
+                            stroke: isSourceMastered ? '#4ade80' : isSourceCurrent ? '#fbbf24' : '#374151',
                             strokeWidth: 2 
                         },
                     });

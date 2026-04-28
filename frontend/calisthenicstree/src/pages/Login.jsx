@@ -24,7 +24,6 @@ const Login = () => {
         setMessage('');
 
         try {
-            // Updated URL to match Spring Boot v1 standard
             const response = await axios.post('http://localhost:8080/api/v1/auth/login', {
                 email: formData.email,
                 password: formData.password
@@ -34,7 +33,7 @@ const Login = () => {
             localStorage.setItem('role', response.data.role);
 
             setMessage('');
-            setSuccessMessage('Login successful! Redirecting...');
+            setSuccessMessage('Login successful!');
 
             setTimeout(() => {
                 navigate('/dashboard'); 
@@ -111,8 +110,6 @@ const Login = () => {
                         </button>
                     </div>
 
-                    
-
                     <button 
                         type="submit"
                         className="w-full bg-gray-200 text-black font-bold py-3 rounded-full hover:bg-white transition-all tracking-widest text-sm"
@@ -131,7 +128,7 @@ const Login = () => {
                                     });
                                     
                                     // If successful, handle it just like a normal manual login!
-                                    setSuccessMessage('Google Login successful! Redirecting...');
+                                    setSuccessMessage('Login successful!');
                                     
                                     localStorage.setItem('token', response.data.token);
                                     localStorage.setItem('role', response.data.role);
@@ -145,7 +142,7 @@ const Login = () => {
                                 }
                             }}
                             onError={() => {
-                                console.log('Google Login Failed');
+                                console.log('Login Failed');
                             }}
                             theme="filled_black"
                             shape="pill"

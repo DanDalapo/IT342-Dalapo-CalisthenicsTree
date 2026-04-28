@@ -75,14 +75,14 @@ const AdminDashboard = () => {
                 await axios.put(`http://localhost:8080/api/v1/admin/exercises/${currentEditingId}`, payload, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
-                setMessage(`✅ Successfully updated: ${payload.name}!`);
+                setMessage(`Successfully updated: ${payload.name}!`);
             } else {
                 const response = await axios.post('http://localhost:8080/api/v1/admin/exercises', payload, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 
                 setExercisesList(prev => prev.map(ex => ex.id === tempId ? response.data : ex));
-                setMessage(`✅ Successfully added: ${payload.name}!`);
+                setMessage(`Successfully added: ${payload.name}!`);
             }
             
 
@@ -91,7 +91,7 @@ const AdminDashboard = () => {
             setExercise(payload);
             setEditingId(currentEditingId);
             console.error("Server Error:", error.response?.data || error.message);
-            setMessage("❌ Failed to save exercise. Connection lost or rejected.");
+            setMessage("Failed to save exercise. Connection lost or rejected.");
         }
     };
 

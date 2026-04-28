@@ -9,6 +9,12 @@ const Dashboard = () => {
     const [toast, setToast] = useState({ message: '', type: '' });
     const [ratingModal, setRatingModal] = useState({ isOpen: false, exerciseId: null, exerciseName: '', category: '', exerciseLevel: null });
     const [selectedDifficulty, setSelectedDifficulty] = useState(5);
+    const [revertModal, setRevertModal] = useState({ isOpen: false, exerciseId: null, exerciseName: '', category: '', exerciseLevel: null });
+    
+    const [completedExercises, setCompletedExercises] = useState(() => {
+        const saved = localStorage.getItem('completedExercises');
+        return saved ? JSON.parse(saved) : [];
+    });
 
     const fetchDashboardData = useCallback(async () => {
         try {
@@ -44,8 +50,11 @@ const Dashboard = () => {
         const rating = selectedDifficulty;
 
         if (rating <= 7) {
-            // SUCCESS! Score is 1 to 7. Update UI and hit backend.
-            setUserProgress(prev => ({ ...prev, [category]: exerciseLevel + 1 }));
+            setUserProgress(prev => ({ ...prev, [category]: Math.max(prev[category] || 0, exerciseLevel + 1) }));
+
+            const newCompleted = [...completedExercises, exerciseId];
+            setCompletedExercises(newCompleted);
+            localStorage.setItem('completedExercises', JSON.stringify(newCompleted));
 
             try {
                 const token = localStorage.getItem('token');
@@ -53,7 +62,7 @@ const Dashboard = () => {
                     headers: { Authorization: `Bearer ${token}` }
                 });
 
-                setToast({ message: `🎉 ${response.data}`, type: 'success' }); 
+                setToast({ message: `${response.data}`, type: 'success' }); 
                 setTimeout(() => setToast({ message: '', type: '' }), 5000);
             } catch (error) {
                 setUserProgress(prev => ({ ...prev, [category]: exerciseLevel }));
@@ -61,24 +70,39 @@ const Dashboard = () => {
                 alert(`Error: ${serverMsg || error.message}`);
             }
         } else {
-            // FAILURE! Score is 8, 9, or 10. Do not update backend.
-            setToast({ message: `💪 Keep practicing! A rating of ${rating} means you need more time to master ${exerciseName}.`, type: 'warning' });
+            setToast({ message: `Keep practicing! A rating of ${rating} means you need more time to master ${exerciseName}.`, type: 'warning' });
             setTimeout(() => setToast({ message: '', type: '' }), 5000);
         }
 
-        // Close the modal when done
         setRatingModal({ isOpen: false, exerciseId: null, exerciseName: '', category: '', exerciseLevel: null });
     };
 
-    const handleRevertExercise = async (exerciseId, exerciseName, category, exerciseLevel) => {
-        if (!window.confirm(`Do you want to step back and make ${exerciseName} your current target again? (You will lose higher-level unlocks in this path)`)) return;
+    const handleRevertExercise = (exerciseId, exerciseName, category, exerciseLevel) => {
+        setRevertModal({ isOpen: true, exerciseId, exerciseName, category, exerciseLevel });
+    };
+
+    const confirmRevertExercise = async () => {
+        const { exerciseId, exerciseName, category, exerciseLevel } = revertModal;
+        
+        setRevertModal({ isOpen: false, exerciseId: null, exerciseName: '', category: '', exerciseLevel: null });
 
         const previousLevel = userProgress[category];
 
-        setUserProgress(prev => ({
-            ...prev,
-            [category]: exerciseLevel
-        }));
+        const newCompleted = completedExercises.filter(id => id !== exerciseId);
+        setCompletedExercises(newCompleted);
+        localStorage.setItem('completedExercises', JSON.stringify(newCompleted));
+
+        const remainingInCategory = exercises.filter(ex => 
+            ex.category === category && newCompleted.includes(ex.id)
+        );
+
+        let newCategoryLevel = 0;
+        if (remainingInCategory.length > 0) {
+            const highestLevelDone = Math.max(...remainingInCategory.map(ex => ex.progressionLevel));
+            newCategoryLevel = highestLevelDone + 1;
+        }
+
+        setUserProgress(prev => ({ ...prev, [category]: newCategoryLevel }));
 
         try {
             const token = localStorage.getItem('token');
@@ -86,7 +110,7 @@ const Dashboard = () => {
                 headers: { Authorization: `Bearer ${token}` }
             });
 
-            setToast({ message: `🔄 ${response.data}`, type: 'warning' }); 
+            setToast({ message: ` ${response.data}`, type: 'warning' }); 
             setTimeout(() => setToast({ message: '', type: '' }), 5000);
         } catch (error) {
             setUserProgress(prev => ({ ...prev, [category]: previousLevel }));
@@ -117,6 +141,7 @@ const Dashboard = () => {
                 <SkillTree 
                     exercises={exercises} 
                     userProgress={userProgress} 
+                    completedExercises={completedExercises}
                     onComplete={handleCompleteExercise} 
                     onRevert={handleRevertExercise} 
                 />
@@ -158,6 +183,37 @@ const Dashboard = () => {
                                 className="flex-1 py-3 rounded-lg bg-red-600 hover:bg-red-500 text-white transition-all font-bold tracking-widest"
                             >
                                 SUBMIT LOG
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {revertModal.isOpen && (
+                <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 backdrop-blur-sm p-4">
+                    <div className="bg-[#111] border border-gray-800 p-8 rounded-2xl w-full max-w-md shadow-2xl">
+                        
+                        <h2 className="text-2xl font-black text-white mb-2 tracking-tighter">
+                            REVERT TARGET
+                        </h2>
+                        
+                        <p className="text-gray-400 mb-8 text-sm leading-relaxed">
+                            Do you want to step back and make <span className="text-white font-bold">{revertModal.exerciseName}</span> your current target again? 
+                            You may lose access to higher-level unlocks in this path if no other prerequisites are met.
+                        </p>
+
+                        <div className="flex gap-4">
+                            <button 
+                                onClick={() => setRevertModal({ isOpen: false, exerciseId: null, exerciseName: '', category: '', exerciseLevel: null })}
+                                className="flex-1 py-3 rounded-lg bg-gray-900 text-gray-400 hover:text-white transition-colors font-bold"
+                            >
+                                CANCEL
+                            </button>
+                            <button 
+                                onClick={confirmRevertExercise}
+                                className="flex-1 py-3 rounded-lg bg-red-600 hover:bg-red-500 text-white transition-all font-bold tracking-widest"
+                            >
+                                CONFIRM REVERT
                             </button>
                         </div>
                     </div>

@@ -6,7 +6,6 @@ import { GoogleLogin } from '@react-oauth/google';
 const Registration = () => {
   const navigate = useNavigate();
 
-  // 1. Setup State for all form fields
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
